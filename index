@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Dash Profissional - Workshop</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root { --primary: #2563eb; --secondary: #7c3aed; --success: #059669; --bg: #f8fafc; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .kpi-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 30px; }
+    .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+    .value { font-size: 1.8rem; font-weight: bold; color: var(--primary); margin-top: 5px; }
+    .chart-box { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); margin-bottom: 20px; }
+    #loading { text-align: center; font-size: 1.5rem; margin-top: 50px; color: #64748b; }
+  </style>
+</head>
+<body>
+
+<div id="loading">Carregando dados da inteligência...</div>
+
+<div class="container" id="dashContent" style="display:none;">
+  <div class="header">
+    <h1>Analytics Workshop Semanal</h1>
+    <button onclick="location.reload()" style="padding: 8px 16px; cursor: pointer;">Atualizar Dados</button>
+  </div>
+
+  <div class="kpi-container">
+    <div class="card"><h3>Investimento Total</h3><div id="kpi-invest" class="value">R$ 0</div></div>
+    <div class="card"><h3>CPL Médio</h3><div id="kpi-cpl" class="value">R$ 0</div></div>
+    <div class="card"><h3>Taxa MQL</h3><div id="kpi-mql" class="value">0%</div></div>
+    <div class="card"><h3>Melhor Tema</h3><div id="kpi-best" class="value" style="font-size: 1.1rem;">-</div></div>
+  </div>
+
+  <div class="chart-box">
+    <canvas id="costChart" style="height: 400px;"></canvas>
+  </div>
+
+  <div class="chart-box">
+    <canvas id="mqlChart" style="height: 300px;"></canvas>
+  </div>
+</div>
+
+<script>
+  // COLE AQUI A URL QUE VOCÊ COPIOU DO GOOGLE APPS SCRIPT
+  const URL_API = "https://script.google.com/macros/s/AKfycbzk2kyFovKfaSiv5CABFYnnDxdb8t9Ob2eTYfW7b1QmUQR_x4cn03c2X_RrRKVdW42d_w/exec"; 
+
+  async function fetchData() {
+    try {
+      const response = await fetch(URL_API);
+      const data = await response.json();
+      renderDash(data);
+    } catch (err) {
+      document.getElementById('loading').innerText = "Erro ao carregar dados. Verifique a URL da API.";
+      console.error(err);
+    }
+  }
+
+  function renderDash(data) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('dashContent').style.display = 'block';
+
+    const res = data.resultados;
+    
+    // CORREÇÃO DO BUG: Usando o Tema como Label principal
+    // Se o tema for igual, adicionamos a data para diferenciar
+    const labels = res.map(r => r.Tema ? r.Tema.substring(0, 20) : "Sem Tema");
+
+    let totalInvest = 0, totalLeads = 0, totalMqls = 0;
+
+    const cplData = res.map(r => Number(r.CPL) || 0);
+    const mqlCostData = res.map(r => Number(r.Custo_MQLs) || 0);
+    const saleCostData = res.map(r => {
+      const inv = Number(r.Invest_Total) || 0;
+      totalInvest += inv;
+      const vendas = (Number(r.Vendas_Qtde_MDLpro) || 0) + (Number(r.Vendas_Qtde_MDL_Essencial) || 0) + (Number(r.Vendas_Qtde_ILU_Essencial) || 0);
+      return vendas > 0 ? (inv / vendas) : 0;
+    });
+
+    const mqlRateData = res.map(r => {
+      const leads = Number(r.Lead_ads) || 0;
+      const mqls = Number(r.MQLs_ads) || 0;
+      totalLeads += leads; totalMqls += mqls;
+      return leads > 0 ? (mqls / leads) * 100 : 0;
+    });
+
+    // Atualiza KPIs
+    document.getElementById('kpi-invest').innerText = `R$ ${totalInvest.toLocaleString('pt-BR')}`;
+    document.getElementById('kpi-cpl').innerText = `R$ ${(totalInvest/totalLeads || 0).toFixed(2)}`;
+    document.getElementById('kpi-mql').innerText = `${(totalMqls/totalLeads*100 || 0).toFixed(1)}%`;
+
+    // Gráfico de Custos Lado a Lado
+    new Chart(document.getElementById('costChart'), {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          { label: 'CPL (Meta R$8)', data: cplData, backgroundColor: '#2563eb' },
+          { label: 'Custo MQL', data: mqlCostData, backgroundColor: '#7c3aed' },
+          { label: 'Custo Venda', data: saleCostData, backgroundColor: '#10b981' },
+          { label: 'Linha Meta CPL', data: Array(labels.length).fill(8), type: 'line', borderColor: 'red', borderDash: [5,5], pointRadius: 0, fill: false }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    // Gráfico de Taxa MQL
+    new Chart(document.getElementById('mqlChart'), {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          { label: 'Taxa MQL (%)', data: mqlRateData, borderColor: '#f59e0b', backgroundColor: '#fef3c7', fill: true },
+          { label: 'Meta 20%', data: Array(labels.length).fill(20), borderColor: 'red', borderDash: [5,5], pointRadius: 0 }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false, scales: { y: { max: 100 } } }
+    });
+  }
+
+  fetchData();
+</script>
+</body>
+</html>
