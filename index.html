@@ -48,11 +48,31 @@
 
   async function fetchData() {
     try {
-      const response = await fetch(URL_API);
-      const data = await response.json();
-      renderDash(data);
+      // O redirect: 'follow' é o segredo para o Google Apps Script funcionar como API
+      const response = await fetch(URL_API, {
+        method: 'GET',
+        redirect: 'follow' 
+      });
+      
+      // Lemos o texto bruto primeiro para ver se o Google não mandou uma página de erro
+      const textData = await response.text(); 
+      
+      try {
+        const data = JSON.parse(textData); // Tentamos transformar em JSON
+        
+        if (data.error) {
+          document.getElementById('loading').innerText = "Erro na Planilha: " + data.error;
+          return;
+        }
+        
+        renderDash(data);
+      } catch (parseError) {
+        console.error("Recebido:", textData);
+        document.getElementById('loading').innerText = "Erro: O Google não enviou os dados corretos. Aperte F12 e olhe o Console.";
+      }
+
     } catch (err) {
-      document.getElementById('loading').innerText = "Erro ao carregar dados. Verifique a URL da API.";
+      document.getElementById('loading').innerText = "Erro de conexão com o Google.";
       console.error(err);
     }
   }
@@ -62,11 +82,7 @@
     document.getElementById('dashContent').style.display = 'block';
 
     const res = data.resultados;
-    
-    // CORREÇÃO DO BUG: Usando o Tema como Label principal
-    // Se o tema for igual, adicionamos a data para diferenciar
     const labels = res.map(r => r.Tema ? r.Tema.substring(0, 20) : "Sem Tema");
-
     let totalInvest = 0, totalLeads = 0, totalMqls = 0;
 
     const cplData = res.map(r => Number(r.CPL) || 0);
@@ -85,27 +101,24 @@
       return leads > 0 ? (mqls / leads) * 100 : 0;
     });
 
-    // Atualiza KPIs
     document.getElementById('kpi-invest').innerText = `R$ ${totalInvest.toLocaleString('pt-BR')}`;
     document.getElementById('kpi-cpl').innerText = `R$ ${(totalInvest/totalLeads || 0).toFixed(2)}`;
     document.getElementById('kpi-mql').innerText = `${(totalMqls/totalLeads*100 || 0).toFixed(1)}%`;
 
-    // Gráfico de Custos Lado a Lado
     new Chart(document.getElementById('costChart'), {
       type: 'bar',
       data: {
         labels: labels,
         datasets: [
-          { label: 'CPL (Meta R$8)', data: cplData, backgroundColor: '#2563eb' },
+          { label: 'CPL', data: cplData, backgroundColor: '#2563eb' },
           { label: 'Custo MQL', data: mqlCostData, backgroundColor: '#7c3aed' },
           { label: 'Custo Venda', data: saleCostData, backgroundColor: '#10b981' },
-          { label: 'Linha Meta CPL', data: Array(labels.length).fill(8), type: 'line', borderColor: 'red', borderDash: [5,5], pointRadius: 0, fill: false }
+          { label: 'Meta CPL (R$8)', data: Array(labels.length).fill(8), type: 'line', borderColor: 'red', borderDash: [5,5], pointRadius: 0, fill: false }
         ]
       },
       options: { responsive: true, maintainAspectRatio: false }
     });
 
-    // Gráfico de Taxa MQL
     new Chart(document.getElementById('mqlChart'), {
       type: 'line',
       data: {
