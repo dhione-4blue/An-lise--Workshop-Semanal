@@ -2,137 +2,231 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
-  <title>Dash Profissional - Workshop</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dash Estratégico - Workshop MDL</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    :root { --primary: #2563eb; --secondary: #7c3aed; --success: #059669; --bg: #f8fafc; }
-    body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+    :root { 
+      --primary: #1e40af; --secondary: #7c3aed; --success: #059669; 
+      --warning: #d97706; --danger: #dc2626; --bg: #f1f5f9; 
+    }
+    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #1e293b; }
     .container { max-width: 1200px; margin: 0 auto; }
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    .kpi-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 30px; }
+    
+    /* Layout */
+    .grid-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; }
+    .grid-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 20px; }
+    
+    /* Cards */
     .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-    .value { font-size: 1.8rem; font-weight: bold; color: var(--primary); margin-top: 5px; }
-    .chart-box { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); margin-bottom: 20px; }
-    #loading { text-align: center; font-size: 1.5rem; margin-top: 50px; color: #64748b; }
+    .card h3 { margin: 0; font-size: 0.8rem; text-transform: uppercase; color: #64748b; letter-spacing: 0.05em; }
+    .value { font-size: 1.8rem; font-weight: 700; color: var(--primary); margin-top: 5px; }
+    
+    /* Funil */
+    .funnel-container { background: white; padding: 25px; border-radius: 12px; margin-bottom: 25px; }
+    .funnel-bar { display: flex; align-items: center; margin-bottom: 10px; height: 35px; border-radius: 4px; overflow: hidden; background: #e2e8f0; }
+    .funnel-fill { height: 100%; display: flex; align-items: center; padding-left: 15px; color: white; font-weight: bold; font-size: 0.9rem; transition: width 1s; }
+    
+    /* Tabelas */
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th { text-align: left; background: #f8fafc; padding: 12px; font-size: 0.85rem; }
+    td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; }
+    
+    #loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; display: flex; align-items: center; justify-content: center; z-index: 100; font-size: 1.2rem; }
+    .gargalo { color: var(--danger); font-weight: bold; }
   </style>
 </head>
 <body>
 
-<div id="loading">Carregando dados da inteligência...</div>
+<div id="loading">✨ Preparando Inteligência de Dados...</div>
 
-<div class="container" id="dashContent" style="display:none;">
-  <div class="header">
-    <h1>Analytics Workshop Semanal</h1>
-    <button onclick="location.reload()" style="padding: 8px 16px; cursor: pointer;">Atualizar Dados</button>
+<div class="container" id="content" style="display:none;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+    <h1>Insight Dash: Workshop Semanal</h1>
+    <button onclick="location.reload()" style="padding:10px 20px; border-radius:8px; border:none; background:var(--primary); color:white; cursor:pointer;">Atualizar Dados</button>
   </div>
 
-  <div class="kpi-container">
-    <div class="card"><h3>Investimento Total</h3><div id="kpi-invest" class="value">R$ 0</div></div>
-    <div class="card"><h3>CPL Médio</h3><div id="kpi-cpl" class="value">R$ 0</div></div>
-    <div class="card"><h3>Taxa MQL</h3><div id="kpi-mql" class="value">0%</div></div>
-    <div class="card"><h3>Melhor Tema</h3><div id="kpi-best" class="value" style="font-size: 1.1rem;">-</div></div>
+  <div class="grid-kpi">
+    <div class="card"><h3>Investimento</h3><div id="kpi-invest" class="value">R$ 0</div></div>
+    <div class="card"><h3>Leads Totais</h3><div id="kpi-leads" class="value">0</div></div>
+    <div class="card"><h3>CPL Geral</h3><div id="kpi-cpl" class="value">R$ 0</div></div>
+    <div class="card"><h3>Receita Total</h3><div id="kpi-receita" class="value" style="color:var(--success)">R$ 0</div></div>
   </div>
 
-  <div class="chart-box">
-    <canvas id="costChart" style="height: 400px;"></canvas>
+  <div class="funnel-container card">
+    <h2 style="margin-top:0">Análise de Gargalos (Caminho do Lead)</h2>
+    <div id="funnel-ui">
+      </div>
+    <p id="insight-gargalo" style="margin-top:20px; padding:15px; background:#fff7ed; border-left:4px solid var(--warning);"></p>
   </div>
 
-  <div class="chart-box">
-    <canvas id="mqlChart" style="height: 300px;"></canvas>
+  <div class="grid-charts">
+    <div class="card">
+      <h3>Custo por Aquisição (CPL vs MQL)</h3>
+      <canvas id="chartCosts"></canvas>
+    </div>
+    <div class="card">
+      <h3>Taxas de Conversão (%)</h3>
+      <canvas id="chartRates"></canvas>
+    </div>
+    <div class="card">
+      <h3>Presença vs Levantada de Mão</h3>
+      <canvas id="chartEngagement"></canvas>
+    </div>
+    <div class="card">
+      <h3>Custo por Venda Final</h3>
+      <canvas id="chartSaleCost"></canvas>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:25px;">
+    <h2>Performance por Tema (Vencedores)</h2>
+    <table id="themeTable">
+      <thead>
+        <tr>
+          <th>Tema</th>
+          <th>CPL</th>
+          <th>Taxa MQL</th>
+          <th>% Presença</th>
+          <th>Vendas</th>
+          <th>ROI Est.</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
   </div>
 </div>
 
 <script>
-  // COLE AQUI A URL QUE VOCÊ COPIOU DO GOOGLE APPS SCRIPT
-  const URL_API = "https://script.google.com/macros/s/AKfycbwi4xZY7DIzmIShV7XES2a9sOlll3JlM1mC6IEbiiil1zCJgohUkqnz9UNrUDwTePFgYg/exec"; 
+  const API_URL = "https://script.google.com/macros/s/AKfycbwi4xZY7DIzmIShV7XES2a9sOlll3JlM1mC6IEbiiil1zCJgohUkqnz9UNrUDwTePFgYg/exec"; // <--- COLOQUE SUA URL AQUI
 
-  async function fetchData() {
+  async function init() {
     try {
-      // O redirect: 'follow' é o segredo para o Google Apps Script funcionar como API
-      const response = await fetch(URL_API, {
-        method: 'GET',
-        redirect: 'follow' 
-      });
-      
-      // Lemos o texto bruto primeiro para ver se o Google não mandou uma página de erro
-      const textData = await response.text(); 
-      
-      try {
-        const data = JSON.parse(textData); // Tentamos transformar em JSON
-        
-        if (data.error) {
-          document.getElementById('loading').innerText = "Erro na Planilha: " + data.error;
-          return;
-        }
-        
-        renderDash(data);
-      } catch (parseError) {
-        console.error("Recebido:", textData);
-        document.getElementById('loading').innerText = "Erro: O Google não enviou os dados corretos. Aperte F12 e olhe o Console.";
-      }
-
-    } catch (err) {
-      document.getElementById('loading').innerText = "Erro de conexão com o Google.";
-      console.error(err);
+      const resp = await fetch(API_URL, { redirect: 'follow' });
+      const data = await resp.json();
+      if (data.error) throw new Error(data.error);
+      render(data.resultados);
+    } catch (e) {
+      document.getElementById('loading').innerHTML = "❌ Erro: " + e.message + "<br>Verifique se a API está publicada como 'Qualquer pessoa'.";
     }
   }
 
-  function renderDash(data) {
+  function render(dados) {
     document.getElementById('loading').style.display = 'none';
-    document.getElementById('dashContent').style.display = 'block';
+    document.getElementById('content').style.display = 'block';
 
-    const res = data.resultados;
-    const labels = res.map(r => r.Tema ? r.Tema.substring(0, 20) : "Sem Tema");
-    let totalInvest = 0, totalLeads = 0, totalMqls = 0;
+    // Agregadores
+    let totalInv = 0, totalLeads = 0, totalMqls = 0, totalPresenca = 0, totalMaos = 0, totalVendas = 0, totalReceita = 0;
+    
+    const temasMap = {};
 
-    const cplData = res.map(r => Number(r.CPL) || 0);
-    const mqlCostData = res.map(r => Number(r.Custo_MQLs) || 0);
-    const saleCostData = res.map(r => {
+    dados.forEach(r => {
       const inv = Number(r.Invest_Total) || 0;
-      totalInvest += inv;
-      const vendas = (Number(r.Vendas_Qtde_MDLpro) || 0) + (Number(r.Vendas_Qtde_MDL_Essencial) || 0) + (Number(r.Vendas_Qtde_ILU_Essencial) || 0);
-      return vendas > 0 ? (inv / vendas) : 0;
+      const leads = Number(r.Leads_Total) || 0;
+      const mqls = Number(r.MQLs_Total) || 0;
+      const pres = Number(r.Presenca_Aulas) || 0;
+      const maos = Number(r.Levantada_Mao_Qtde) || 0;
+      const vds = (Number(r.Vendas_Qtde_MDLpro) || 0) + (Number(r.Vendas_Qtde_MDL_Essencial) || 0) + (Number(r.Vendas_Qtde_ILU_Essencial) || 0);
+      const rec = Number(r.Receita_Total) || 0;
+
+      totalInv += inv; totalLeads += leads; totalMqls += mqls;
+      totalPresenca += pres; totalMaos += maos; totalVendas += vds;
+      totalReceita += rec;
+
+      if (!temasMap[r.Tema]) temasMap[r.Tema] = { inv:0, leads:0, mqls:0, pres:0, vds:0, rec:0 };
+      temasMap[r.Tema].inv += inv;
+      temasMap[r.Tema].leads += leads;
+      temasMap[r.Tema].mqls += mqls;
+      temasMap[r.Tema].pres += pres;
+      temasMap[r.Tema].vds += vds;
+      temasMap[r.Tema].rec += rec;
     });
 
-    const mqlRateData = res.map(r => {
-      const leads = Number(r.Lead_ads) || 0;
-      const mqls = Number(r.MQLs_ads) || 0;
-      totalLeads += leads; totalMqls += mqls;
-      return leads > 0 ? (mqls / leads) * 100 : 0;
-    });
+    // Atualiza KPIs
+    document.getElementById('kpi-invest').innerText = "R$ " + totalInv.toLocaleString('pt-BR');
+    document.getElementById('kpi-leads').innerText = totalLeads;
+    document.getElementById('kpi-cpl').innerText = "R$ " + (totalInv / totalLeads || 0).toFixed(2);
+    document.getElementById('kpi-receita').innerText = "R$ " + totalReceita.toLocaleString('pt-BR');
 
-    document.getElementById('kpi-invest').innerText = `R$ ${totalInvest.toLocaleString('pt-BR')}`;
-    document.getElementById('kpi-cpl').innerText = `R$ ${(totalInvest/totalLeads || 0).toFixed(2)}`;
-    document.getElementById('kpi-mql').innerText = `${(totalMqls/totalLeads*100 || 0).toFixed(1)}%`;
+    // Funil de Conversão
+    const etapas = [
+      { n: "Leads", v: totalLeads, c: "#1e40af" },
+      { n: "MQLs", v: totalMqls, c: "#3b82f6" },
+      { n: "Presença", v: totalPresenca, c: "#8b5cf6" },
+      { n: "Mão Levantada", v: totalMaos, c: "#a855f7" },
+      { n: "Vendas", v: totalVendas, c: "#10b981" }
+    ];
 
-    new Chart(document.getElementById('costChart'), {
+    const funnelHtml = etapas.map(e => {
+      const pct = totalLeads > 0 ? (e.v / totalLeads * 100).toFixed(1) : 0;
+      return `
+        <div style="margin-bottom:15px">
+          <div style="display:flex; justify-content:space-between; font-size:0.8rem; margin-bottom:4px">
+            <span>${e.n}</span><span>${e.v} (${pct}%)</span>
+          </div>
+          <div class="funnel-bar">
+            <div class="funnel-fill" style="width:${pct}%; background:${e.c}">${pct}%</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+    document.getElementById('funnel-ui').innerHTML = funnelHtml;
+
+    // Insight de Gargalo
+    const mqlRate = (totalMqls / totalLeads);
+    const presRate = (totalPresenca / totalMqls);
+    let msg = "";
+    if (presRate < 0.2) msg = "🚨 <b>Gargalo detectado:</b> Poucos MQLs estão comparecendo à aula. Melhore o aquecimento no WhatsApp.";
+    else if (mqlRate < 0.2) msg = "🚨 <b>Gargalo detectado:</b> Sua taxa de qualificação (Leads -> MQL) está baixa. Verifique os criativos.";
+    else msg = "✅ <b>Fluxo Saudável:</b> O funil está performando conforme esperado.";
+    document.getElementById('insight-gargalo').innerHTML = msg;
+
+    // Gráficos Separados
+    const labels = dados.map(r => r.Data_Inicio ? new Date(r.Data_Inicio).toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'}) : "S/D");
+
+    // 1. Custos
+    new Chart(document.getElementById('chartCosts'), {
       type: 'bar',
       data: {
         labels: labels,
         datasets: [
-          { label: 'CPL', data: cplData, backgroundColor: '#2563eb' },
-          { label: 'Custo MQL', data: mqlCostData, backgroundColor: '#7c3aed' },
-          { label: 'Custo Venda', data: saleCostData, backgroundColor: '#10b981' },
-          { label: 'Meta CPL (R$8)', data: Array(labels.length).fill(8), type: 'line', borderColor: 'red', borderDash: [5,5], pointRadius: 0, fill: false }
+          { label: 'CPL', data: dados.map(r => r.CPL || 0), backgroundColor: '#3b82f6' },
+          { label: 'Custo MQL', data: dados.map(r => r.Custo_MQLs || 0), backgroundColor: '#8b5cf6' }
         ]
-      },
-      options: { responsive: true, maintainAspectRatio: false }
+      }
     });
 
-    new Chart(document.getElementById('mqlChart'), {
+    // 2. Taxas
+    new Chart(document.getElementById('chartRates'), {
       type: 'line',
       data: {
         labels: labels,
-        datasets: [
-          { label: 'Taxa MQL (%)', data: mqlRateData, borderColor: '#f59e0b', backgroundColor: '#fef3c7', fill: true },
-          { label: 'Meta 20%', data: Array(labels.length).fill(20), borderColor: 'red', borderDash: [5,5], pointRadius: 0 }
-        ]
-      },
-      options: { responsive: true, maintainAspectRatio: false, scales: { y: { max: 100 } } }
+        datasets: [{
+          label: '% Presença/Leads',
+          data: dados.map(r => (Number(r.Presenca_Aulas)/Number(r.Leads_Total)*100 || 0)),
+          borderColor: '#10b981', tension: 0.3
+        }]
+      }
     });
+
+    // Tabela
+    const tbody = document.querySelector("#themeTable tbody");
+    for (let t in temasMap) {
+      const info = temasMap[t];
+      tbody.innerHTML += `
+        <tr>
+          <td><b>${t}</b></td>
+          <td>R$ ${(info.inv/info.leads || 0).toFixed(2)}</td>
+          <td>${(info.mqls/info.leads*100 || 0).toFixed(1)}%</td>
+          <td>${(info.pres/info.leads*100 || 0).toFixed(1)}%</td>
+          <td>${info.vds}</td>
+          <td>${(info.rec/info.inv || 0).toFixed(1)}x</td>
+        </tr>
+      `;
+    }
   }
 
-  fetchData();
+  init();
 </script>
 </body>
 </html>
